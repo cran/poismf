@@ -1,8 +1,8 @@
-60621c4c2abc8a8514e3cc749767f4fe *DESCRIPTION
+da086e8ef51ef1a4e7d7df16d4b88f6c *DESCRIPTION
 229f64c9d55b089990d7f02850c1ced1 *LICENSE
 cd0da4b5f1672aaef1687d17b1a7d53f *NAMESPACE
 71ea7d7746524965df39209e67a434e1 *R/RcppExports.R
-e722f346bd246284d87d9455a22814a6 *R/poismf.R
+fd002ec4fedc7ce88229a82f7288f9d2 *R/poismf.R
 bba851c29e4ba44d2f11d7450d5c1ea5 *man/poismf.Rd
 1cde08b7c5ec3f221e4eeb28aeed7d9e *man/predict.poismf.Rd
 ffca240268e5980643f334233a787e84 *man/predict_all.Rd
@@ -10,5 +10,5 @@ e9f8391208af870e89e5aa63deabe533 *man/print.poismf.Rd
 dc409f5a29186f5ba95a34e4dd3b04bc *man/summary.poismf.Rd
 2b05a0648e384ccc9593247e3a08dc0b *src/Makevars
 35ecc258d8738cccb334b5b43545cfcc *src/RcppExports.cpp
-fa431504a631a02abf8f6c610c09fa43 *src/pgd.cpp
-9a12b5429895b5c5cc34330762db1168 *src/rwrapper.cpp
+e02dcd13eb2482c782e2b443f1e0301f *src/pgd.cpp
+7ecae96c5d281566e100cb552016a6ec *src/rwrapper.cpp

@@ -1,19 +1,19 @@
 extern "C" {
 	#include <stddef.h>
 	#include <R_ext/BLAS.h>
+	void run_poismf(
+		double *A, double *Xr, size_t *Xr_indptr, size_t *Xr_indices,
+		double *B, double *Xc, size_t *Xc_indptr, size_t *Xc_indices,
+		const size_t dimA, const size_t dimB, const size_t k,
+		const double l2_reg, const double l1_reg, const int use_cg, double step_size,
+		const size_t numiter, const size_t npass, const int ncores);
 	double cblas_ddot(int n, double *x, int incx, double *y, int incy);
 	void cblas_daxpy(int n, double a, double *x, int incx, double *y, int incy);
 	void cblas_dscal(int n, double alpha, double *x, int incx);
 }
-void run_poismf(
-	double *A, double *Xr, size_t *Xr_indptr, size_t *Xr_indices,
-	double *B, double *Xc, size_t *Xc_indptr, size_t *Xc_indices,
-	const size_t dimA, const size_t dimB, const size_t k,
-	const double l2_reg, const double l1_reg, const int use_cg, double step_size,
-	const size_t numiter, const size_t npass, const int ncores);
 #include <Rcpp.h>
 #ifdef _OPENMP
-#if _OPENMP > 200801 /* OpenMP > 3.0 */
+#if (_OPENMP > 200801) && !defined(_WIN32) && !defined(_WIN64) /* OpenMP > 3.0 */
 		#define size_t_for size_t
 	#else
 		#define size_t_for
@@ -39,7 +39,7 @@ void r_wrapper_poismf(Rcpp::NumericVector A, Rcpp::NumericVector B, size_t dimA,
 	Xc_ind.reserve(nnz);
 
 	#ifdef _OPENMP
-		#if _OPENMP < 20080101 /* OpenMP < 3.0 */
+		#if (_OPENMP < 200801) || defined(_WIN32) || defined(_WIN64) /* OpenMP < 3.0 */
 			long i;
 		#endif
 	#endif
@@ -70,7 +70,7 @@ void predict_multiple(Rcpp::NumericVector A, Rcpp::NumericVector B, int k, size_
 	Rcpp::IntegerVector ia, Rcpp::IntegerVector ib, Rcpp::NumericVector out, int nthreads)
 {
 	#ifdef _OPENMP
-		#if _OPENMP < 200801 /* OpenMP < 3.0 */
+		#if (_OPENMP < 200801) || defined(_WIN32) || defined(_WIN64) /* OpenMP < 3.0 */
 			long i;
 		#endif
 	#endif
