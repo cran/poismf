@@ -73,10 +73,27 @@ extern "C" {
     #define fprintf(f, message) REprintf(message)
 #endif
 
+#ifndef real_t
+    #ifndef USE_FLOAT
+        #define real_t double
+        #define cblas_tdot cblas_ddot
+        #define cblas_taxpy cblas_daxpy
+        #define cblas_tscal cblas_dscal
+        #define cblas_tnrm2 cblas_dnrm2
+        #define cblas_tgemv cblas_dgemv
+    #else
+        #define real_t float
+        #define cblas_tdot cblas_sdot
+        #define cblas_taxpy cblas_saxpy
+        #define cblas_tscal cblas_sscal
+        #define cblas_tnrm2 cblas_snrm2
+        #define cblas_tgemv cblas_sgemv
+    #endif
+#endif
 
-double cblas_ddot(const int n, const double *x, const int incx, const double *y, const int incy);
-void cblas_daxpy(const int n, const double alpha, const double *x, const int incx, double *y, const int incy);
-void cblas_dscal(const int N, const double alpha, double *X, const int incX);
+real_t cblas_tdot(const int n, const real_t *x, const int incx, const real_t *y, const int incy);
+void cblas_taxpy(const int n, const real_t alpha, const real_t *x, const int incx, real_t *y, const int incy);
+void cblas_tscal(const int N, const real_t alpha, real_t *X, const int incX);
 
 /* Aliasing for compiler optimizations */
 #ifdef __cplusplus
@@ -109,11 +126,10 @@ void cblas_dscal(const int N, const double alpha, double *X, const int incX);
 #define get_curr_ix_rotation(ix, n) (  ((ix) == 0) ? 0 : (n)  )
 #define incr_ix_rotation(ix) (  ((ix) == 0)? 1 : 0  )
 #define square(x) ( (x) * (x) )
-#define nonneg(x) ( ((x) > 1e-16)? (x) : (0.) )
 
-typedef void fun_eval(double x[], int n, double *f, void *data);
-typedef void grad_eval(double x[], int n, double grad[], void *data);
-typedef void callback(double x[], int n, double f, size_t iter, void *data);
+typedef void fun_eval(real_t x[], int n, real_t *f, void *data);
+typedef void grad_eval(real_t x[], int n, real_t grad[], void *data);
+typedef void callback(real_t x[], int n, real_t f, size_t iter, void *data);
 
 typedef enum cg_result {tol_achieved = 0, stop_maxnfeval  = 1,
                         stop_maxiter = 2, unsuccessful_ls = 3,
@@ -148,28 +164,32 @@ typedef enum cg_result {tol_achieved = 0, stop_maxnfeval  = 1,
                       (Recommended: 0.01)
     max_ls          : Maximum number of line search trials per iteration
                       (Recommended: 20)
+    limit_step      : Whether to limit the step sizes so as to make at most 1
+                      variable become zero after each update - this is the strategy
+                      prescribed in the reference paper
+                      (Recommended: true)
     buffer_arr      : Array of dimensions (5*n). Will allocate it and then free it if passing NULL.
     nthreads        : Number of parallel threads to use
     verbose         : Whether to print convergence messages
 */
-int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
+int minimize_nonneg_cg(real_t *restrict x, int n, real_t *fun_val,
     fun_eval *obj_fun, grad_eval *grad_fun, callback *cb, void *data,
-    double tol, size_t maxnfeval, size_t maxiter, size_t *niter, size_t *nfeval,
-    double decr_lnsrch, double lnsrch_const, size_t max_ls,
-    double *buffer_arr, int nthreads, int verbose)
+    real_t tol, size_t maxnfeval, size_t maxiter, size_t *niter, size_t *nfeval,
+    real_t decr_lnsrch, real_t lnsrch_const, size_t max_ls,
+    bool limit_step, real_t *buffer_arr, int nthreads, int verbose)
 {
-    double max_step;
-    double direction_norm_sq;
-    double grad_prev_norm_sq = 0;
-    double prod_grad_dir;
-    double theta;
-    double beta;
-    double curr_fun_val;
-    double new_fun_val;
+    real_t max_step;
+    real_t direction_norm_sq;
+    real_t grad_prev_norm_sq = 0;
+    real_t prod_grad_dir;
+    real_t theta;
+    real_t beta;
+    real_t curr_fun_val;
+    real_t new_fun_val;
     obj_fun(x, n, &curr_fun_val, data);
     *nfeval = 1;
     bool dealloc_buffer = false;
-    double curr_step;
+    real_t curr_step;
     size_t ls;
     cg_result return_value = stop_maxiter;
     if ( maxiter <= 0 ) { maxiter = INT_MAX;}
@@ -182,7 +202,7 @@ int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
     int ix_rotation = 0;
     if (buffer_arr == NULL)
     {
-        buffer_arr = (double*) malloc(sizeof(double) * n * 5);
+        buffer_arr = (real_t*) malloc(sizeof(real_t) * n * 5);
         dealloc_buffer = true;
         if (buffer_arr == NULL)
         {
@@ -190,13 +210,13 @@ int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
             return out_of_mem;
         }
     }
-    double *grad_curr_n_prev = buffer_arr;
-    double *direction_curr_n_prev = buffer_arr + 2 * n;
-    double *restrict direction_curr = direction_curr_n_prev;
-    double *restrict grad_curr = grad_curr_n_prev;
-    double *restrict direction_prev = NULL;
-    double *restrict grad_prev = NULL;
-    double *restrict new_x = buffer_arr + 4 * n;
+    real_t *grad_curr_n_prev = buffer_arr;
+    real_t *direction_curr_n_prev = buffer_arr + 2 * n;
+    real_t *restrict direction_curr = direction_curr_n_prev;
+    real_t *restrict grad_curr = grad_curr_n_prev;
+    real_t *restrict direction_prev = NULL;
+    real_t *restrict grad_prev = NULL;
+    real_t *restrict new_x = buffer_arr + 4 * n;
 
     if (isnan(curr_fun_val) || isinf(curr_fun_val)) {
         return_value = unsuccessful_ls;
@@ -239,7 +259,7 @@ int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
         }
 
         /* check if stop criterion is satisfied */
-        prod_grad_dir = cblas_ddot(n, grad_curr, 1, direction_curr, 1);
+        prod_grad_dir = cblas_tdot(n, grad_curr, 1, direction_curr, 1);
         if ( fabs(prod_grad_dir) <= tol )
         {
             return_value = tol_achieved;
@@ -247,22 +267,37 @@ int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
         }
 
         /* determine maximum step size */
-        max_step = 1.;
-        for (size_t i = 0; i < n_szt; i++)
+        if (limit_step)
         {
-            if (direction_curr[i] < 0.)
-                max_step = fmin(max_step, -x[i] / direction_curr[i]);
+            max_step = 1.;
+            for (size_t i = 0; i < n_szt; i++) {
+                if (direction_curr[i] < 0.)
+                    max_step = fmin(max_step, -x[i] / direction_curr[i]);
+            }
+        }
+
+        else {
+            max_step = 0.;
+            for (size_t i = 0; i < n_szt; i++) {
+                if (direction_curr[i] < 0.)
+                    max_step = fmax(max_step, -x[i] / direction_curr[i]);
+            }
+            max_step = fmin(1., 0.99 * max_step);
         }
 
         /* perform line search */
-        direction_norm_sq = cblas_ddot(n, direction_curr, 1, direction_curr, 1);
+        direction_norm_sq = cblas_tdot(n, direction_curr, 1, direction_curr, 1);
         curr_step = max_step;
         for (ls = 0; ls < max_ls; ls++)
         {
-            memcpy(new_x, x, n*sizeof(double));
-            cblas_daxpy(n, curr_step, direction_curr, 1, new_x, 1);
-            for (size_t i = 0; i < n_szt; i++)
-                new_x[i] = nonneg(new_x[i]);
+            memcpy(new_x, x, n*sizeof(real_t));
+            cblas_taxpy(n, curr_step, direction_curr, 1, new_x, 1);
+            if (limit_step)
+                for (size_t i = 0; i < n_szt; i++)
+                    new_x[i] = (new_x[i] >= 1e-15)? new_x[i] : 0.;
+            else
+                for (size_t i = 0; i < n_szt; i++)
+                    new_x[i] = (new_x[i] > 0.)? new_x[i] : 0.;
             obj_fun(new_x, n, &new_fun_val, data);
             if ( !isinf(new_fun_val) && !isnan(new_fun_val) )
             {
@@ -270,7 +305,7 @@ int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
                     new_fun_val <= 
                     curr_fun_val - lnsrch_const * curr_step * direction_norm_sq
                     )
-                    { memcpy(x, new_x, n*sizeof(double)); break; }
+                    { memcpy(x, new_x, n*sizeof(real_t)); break; }
             }
             (*nfeval)++;
             if (*nfeval >= maxnfeval) {
@@ -288,7 +323,7 @@ int minimize_nonneg_cg(double *restrict x, int n, double *fun_val,
         if ( cb != NULL) { cb(x, n, curr_fun_val, *niter, data); }
 
         /* update norm of gradient */
-        grad_prev_norm_sq = cblas_ddot(n, grad_curr, 1, grad_curr, 1);
+        grad_prev_norm_sq = cblas_tdot(n, grad_curr, 1, grad_curr, 1);
 
         /* next time, write to the other side of grad and dir arrays */
         direction_prev = direction_curr;

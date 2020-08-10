@@ -39,6 +39,9 @@
 #include <R_ext/Rdynload.h>
 #include <R.h>
 #include <Rinternals.h>
+#ifndef _FOR_R
+#define _FOR_R
+#endif
 #include "poismf.h"
 
 /* FORTRAN-BLAS -> CBLAS */
@@ -46,6 +49,7 @@
 double cblas_ddot(const int n, const double *x, const int incx, const double *y, const int incy) { return ddot_(&n, x, &incx, y, &incy); }
 void cblas_daxpy(const int n, const double alpha, const double *x, const int incx, double *y, const int incy) { daxpy_(&n, &alpha, x, &incx, y, &incy); }
 void cblas_dscal(const int N, const double alpha, double *X, const int incX) { dscal_(&N, &alpha, X, &incX); }
+double cblas_dnrm2(const int n, const double *x, const int incx) { return dnrm2_(&n, x, &incx); }
 void cblas_dgemv(const CBLAS_ORDER order,  const CBLAS_TRANSPOSE TransA,  const int m, const int n,
          const double alpha, const double  *a, const int lda,  const double  *x, const int incx,  const double beta,  double  *y, const int incy)
 {
@@ -80,9 +84,10 @@ SEXP wrapper_run_poismf
     SEXP Xr, SEXP Xr_indices, SEXP Xr_indptr,
     SEXP Xc, SEXP Xc_indices, SEXP Xc_indptr,
     SEXP A, SEXP B, SEXP dimA, SEXP dimB, SEXP k,
-    SEXP use_cg, SEXP l2_reg, SEXP l1_reg,
+    SEXP method, SEXP limit_step,
+    SEXP l2_reg, SEXP l1_reg,
     SEXP w_mult, SEXP step_size,
-    SEXP niter, SEXP npass, SEXP nthreads
+    SEXP niter, SEXP maxupd, SEXP nthreads
 )
 {
     int ret_code = run_poismf(
@@ -91,8 +96,8 @@ SEXP wrapper_run_poismf
         (size_t) Rf_asInteger(dimA), (size_t) Rf_asInteger(dimB),
         (size_t) Rf_asInteger(k), Rf_asReal(l2_reg), Rf_asReal(l1_reg),
         Rf_asReal(w_mult), Rf_asReal(step_size),
-        (bool) Rf_asLogical(use_cg),
-        (size_t) Rf_asInteger(niter), (size_t) Rf_asInteger(npass),
+        (Method) Rf_asInteger(method), (bool) Rf_asLogical(limit_step),
+        (size_t) Rf_asInteger(niter), (size_t) Rf_asInteger(maxupd),
         Rf_asInteger(nthreads)
     );
     if (ret_code == 1) Rf_error("Out of memory.");
@@ -123,7 +128,7 @@ SEXP wrapper_predict_factors
     SEXP A_old, SEXP k,
     SEXP counts, SEXP ix,
     SEXP B, SEXP Bsum,
-    SEXP npass,
+    SEXP maxupd,
     SEXP l2_reg,
     SEXP l1_new, SEXP l1_old,
     SEXP w_mult
@@ -136,9 +141,10 @@ SEXP wrapper_predict_factors
     int ret_code = factors_single(
         REAL(out), k_szt,
         REAL(A_old), dimA,
-        REAL(counts), INTEGER(ix), (sparse_ix) Rf_length(counts),
+        REAL(counts), INTEGER(ix),
+        (sparse_ix) Rf_length(counts),
         REAL(B), REAL(Bsum),
-        (size_t) Rf_asInteger(npass),
+        Rf_asInteger(maxupd),
         Rf_asReal(l2_reg),
         Rf_asReal(l1_new), Rf_asReal(l1_old),
         Rf_asReal(w_mult)
@@ -158,8 +164,8 @@ SEXP wrapper_predict_factors_multiple
     SEXP B, SEXP Bsum,
     SEXP Xr_indptr, SEXP Xr_indices, SEXP Xr,
     SEXP l2_reg, SEXP w_mult,
-    SEXP step_size, SEXP niter, SEXP npass,
-    SEXP use_cg, SEXP nthreads
+    SEXP step_size, SEXP niter, SEXP maxupd,
+    SEXP method, SEXP limit_step, SEXP nthreads
 )
 {
     SEXP out = PROTECT(Rf_allocVector(REALSXP, (size_t)Rf_asInteger(k)
@@ -171,8 +177,9 @@ SEXP wrapper_predict_factors_multiple
         Rf_asInteger(k), Rf_asInteger(dimA),
         Rf_asReal(l2_reg), Rf_asReal(w_mult),
         Rf_asReal(step_size), (size_t) Rf_asInteger(niter),
-        (size_t) Rf_asInteger(npass),
-        (bool) Rf_asLogical(use_cg),
+        (size_t) Rf_asInteger(maxupd),
+        (Method) Rf_asInteger(method),
+        (bool) Rf_asLogical(limit_step),
         Rf_asInteger(nthreads)
     );
 
@@ -237,10 +244,10 @@ SEXP wrapper_topN
 
 
 static const R_CallMethodDef callMethods [] = {
-    {"wrapper_run_poismf", (DL_FUNC) &wrapper_run_poismf, 19},
+    {"wrapper_run_poismf", (DL_FUNC) &wrapper_run_poismf, 20},
     {"wrapper_predict_multiple", (DL_FUNC) &wrapper_predict_multiple, 6},
     {"wrapper_predict_factors", (DL_FUNC) &wrapper_predict_factors, 11},
-    {"wrapper_predict_factors_multiple", (DL_FUNC) &wrapper_predict_factors_multiple, 15},
+    {"wrapper_predict_factors_multiple", (DL_FUNC) &wrapper_predict_factors_multiple, 16},
     {"wrapper_eval_llk", (DL_FUNC) &wrapper_eval_llk, 11},
     {"wrapper_topN", (DL_FUNC) &wrapper_topN, 9},
     {NULL, NULL, 0}
