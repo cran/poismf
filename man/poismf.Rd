@@ -17,6 +17,7 @@ poismf(
   weight_mult = 1,
   init_type = "gamma",
   seed = 1,
+  handle_interrupt = TRUE,
   nthreads = parallel::detectCores()
 )
 }
@@ -111,6 +112,14 @@ them `~ Gamma(1, 1))` or `'unif'` (will initialize them `~ Unif(0, 1))`..}
 
 \item{seed}{Random seed to use for starting the factorizing matrices.}
 
+\item{handle_interrupt}{Whether to respond to interrupt signals in the optimization procedure.
+If passing `TRUE`, whenever it receives an interrupt signal during the
+optimzation procedure, it will termnate earlier, taking the current values
+of the variables without finishing, instead of throwing an error.
+If passing `FALSE`, will raise an error when it is interrupted, which
+will only be catched after the procedure is finished, and the obtained
+object will not be usable.}
+
 \item{nthreads}{Number of parallel threads to use.}
 }
 \value{
@@ -120,6 +129,9 @@ An object of class `poismf` with the following fields of interest:
 Creates a low-rank non-negative factorization of a sparse counts
 matrix by maximizing Poisson likelihood minus L1/L2 regularization, using
 gradient-based optimization procedures.
+
+The model idea is: \eqn{\mathbf{X} \approx \texttt{Poisson}(\mathbf{A} \mathbf{B}^T)}{
+X ~ Poisson(A*t(B))}
 
 Ideal for usage in recommender systems, in which the `X` matrix would consist of
 interactions (e.g. clicks, views, plays), with users representing the rows and items

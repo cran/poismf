@@ -141,6 +141,10 @@ void pg_iteration
     {
 
         nnz_this = Xr_indptr[ia + 1] - Xr_indptr[ia];
+        if (nnz_this == 0) {
+            memset(A + ia*k, 0, k*sizeof(real_t));
+            continue;
+        }
         if (w_mult != 1.) Bsum = Bsum_user + ia*k;
 
         for (size_t p = 0; p < maxupd; p++)
@@ -273,6 +277,11 @@ void cg_iteration
         data.X_ind = Xr_indices + Xr_indptr[ia];
         data.nnz_this = Xr_indptr[ia + 1] - Xr_indptr[ia];
 
+        if (data.nnz_this == 0) {
+            memset(A + ia*k, 0, k*sizeof(real_t));
+            continue;
+        }
+
         if (w_mult != 1.) data.Bsum = Bsum_w + ia*k;
 
         minimize_nonneg_cg(
@@ -318,6 +327,11 @@ void tncg_iteration
         data.X_ind = Xr_indices + Xr_indptr[ia];
         data.nnz_this = Xr_indptr[ia + 1] - Xr_indptr[ia];
 
+        if (data.nnz_this == 0) {
+            memset(A + ia*k, 0, k*sizeof(real_t));
+            continue;
+        }
+
         if (w_mult != 1.) data.Bsum = Bsum_w + ia*k;
 
         tnc(k_int, A + ia*k, &fun_val,
@@ -360,6 +374,7 @@ void set_interrup_global_variable(int s)
     limit_step                : Whether to limit CG step sizes to zero-out one variable per step
     numiter                   : Number of iterations for which to run the procedure
     maxupd                    : Number of updates to the same vector per iteration
+    handle_interrupt          : Whether to respond to interrupt signals
     nthreads                  : Number of threads to use
 Matrices A and B are optimized in-place,
 and are assumed to be in row-major order.
@@ -371,7 +386,7 @@ int run_poismf(
     const size_t dimA, const size_t dimB, const size_t k,
     const real_t l2_reg, const real_t l1_reg, const real_t w_mult, real_t step_size,
     const Method method, const bool limit_step, const size_t numiter, const size_t maxupd,
-    const int nthreads)
+    const bool handle_interrupt, const int nthreads)
 {
 
     real_t *cnst_sum = (real_t*) malloc(sizeof(real_t) * k);
@@ -419,7 +434,8 @@ int run_poismf(
 
     for (size_t fulliter = 0; fulliter < numiter; fulliter++){
 
-        signal(SIGINT, set_interrup_global_variable);
+        if (handle_interrupt)
+            signal(SIGINT, set_interrup_global_variable);
         if (should_stop_procedure) goto cleanup;
 
         /* Constants to use later */
@@ -466,7 +482,8 @@ int run_poismf(
             }
         }
 
-        signal(SIGINT, set_interrup_global_variable);
+        if (handle_interrupt)
+            signal(SIGINT, set_interrup_global_variable);
         if (should_stop_procedure) goto cleanup;
 
 

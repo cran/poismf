@@ -10,6 +10,9 @@
 #' matrix by maximizing Poisson likelihood minus L1/L2 regularization, using
 #' gradient-based optimization procedures.
 #' 
+#' The model idea is: \eqn{\mathbf{X} \approx \texttt{Poisson}(\mathbf{A} \mathbf{B}^T)}{
+#' X ~ Poisson(A*t(B))}
+#' 
 #' Ideal for usage in recommender systems, in which the `X` matrix would consist of
 #' interactions (e.g. clicks, views, plays), with users representing the rows and items
 #' representing the columns.
@@ -91,6 +94,13 @@
 #' @param init_type How to initialize the model parameters. One of `'gamma'` (will initialize
 #' them `~ Gamma(1, 1))` or `'unif'` (will initialize them `~ Unif(0, 1))`..
 #' @param seed Random seed to use for starting the factorizing matrices.
+#' @param handle_interrupt Whether to respond to interrupt signals in the optimization procedure.
+#' If passing `TRUE`, whenever it receives an interrupt signal during the
+#' optimzation procedure, it will termnate earlier, taking the current values
+#' of the variables without finishing, instead of throwing an error.
+#' If passing `FALSE`, will raise an error when it is interrupted, which
+#' will only be catched after the procedure is finished, and the obtained
+#' object will not be usable.
 #' @param nthreads Number of parallel threads to use.
 #' @details In order to obtain sparse latent factor matrices, you need to pass
 #' `method='tncg'` and a large `niter`, such as `niter=50` or `niter=100`.
@@ -189,6 +199,7 @@ poismf <- function(X, k = 50, method = "tncg",
                    niter = "auto", maxupd = "auto",
                    limit_step = TRUE, initial_step = 1e-7,
                    weight_mult = 1, init_type = "gamma", seed = 1,
+                   handle_interrupt = TRUE,
                    nthreads = parallel::detectCores()) {
     
     ### Check input parameters
@@ -227,11 +238,12 @@ poismf <- function(X, k = 50, method = "tncg",
     maxupd       <- as.integer(maxupd)
     nthreads     <- as.integer(nthreads)
     
-    method_code <- switch(method,
-                          "tncg" = 1,
-                          "cg"   = 2,
-                          "pg"   = 3)
-    method_code <- as.integer(method_code)
+    method_code  <- switch(method,
+                           "tncg" = 1,
+                           "cg"   = 2,
+                           "pg"   = 3)
+    method_code  <- as.integer(method_code)
+    handle_interrupt <- as.logical(handle_interrupt)
     
     is_df <- FALSE
     
@@ -320,14 +332,33 @@ poismf <- function(X, k = 50, method = "tncg",
     }
     if (nnz < 1) { stop("Input does not contain non-zero values.") }
     
+    ### Check for integer overflow
+    if ((max(c(dimA, dimB, k)) > .Machine$integer.max) ||
+        (min(c(dimA, dimB, k)) <= 0) ||
+        any(c(is.na(dimA), is.na(dimB), is.na(k)))) {
+        stop("Error: integer overflow. Dimensions cannot be larger than 2^31-1.")
+    }
+    size_within_int_range <- (
+        .Call("check_size_below_int_max", dimA, k) &&
+        .Call("check_size_below_int_max", dimB, k)
+    )
+    
     ### Initialize factor matrices
     set.seed(seed)
-    if (init_type == "gamma") {
-        A <- -log(runif(dimA * k))
-        B <- -log(runif(dimB * k))
+    if (size_within_int_range) {
+        if (init_type == "gamma") {
+            A <- -log(runif(dimA * k))
+            B <- -log(runif(dimB * k))
+        } else {
+            A <- runif(dimA * k)
+            B <- runif(dimB * k)
+        }
     } else {
-        A <- runif(dimA * k)
-        B <- runif(dimB * k)
+        A <- .Call("large_rnd_vec", dimA, k, init_type == "gamma")
+        B <- .Call("large_rnd_vec", dimB, k, init_type == "gamma")
+        if (NROW(A) == 0 || NROW(B == 0)) {
+            stop("Memory error.")
+        }
     }
     
     ### Run optimizer
@@ -338,7 +369,7 @@ poismf <- function(X, k = 50, method = "tncg",
               A, B, dimA, dimB, k,
               method_code, limit_step, l2_reg, l1_reg,
               weight_mult, initial_step,
-              niter, maxupd, nthreads)
+              niter, maxupd, handle_interrupt, nthreads)
     } else { ## 'Matrix'
         .Call("wrapper_run_poismf",
               Xcsr@x, Xcsr@i, Xcsr@p,
@@ -346,7 +377,7 @@ poismf <- function(X, k = 50, method = "tncg",
               A, B, dimA, dimB, k,
               method_code, limit_step, l2_reg, l1_reg,
               weight_mult, initial_step,
-              niter, maxupd, nthreads)
+              niter, maxupd, handle_interrupt, nthreads)
     }
     
     ### Return all info
@@ -450,7 +481,7 @@ poismf__unsafe <- function(A, B, Xcsr, Xcsc, k, method="tncg",
                            weight_mult=1.,
                            nthreads=parallel::detectCores(),
                            init_type=NULL,
-                           seed=NULL) {
+                           seed=NULL, handle_interrupt=TRUE) {
     if (l2_reg == "auto")
         l2_reg <- switch(method, "tncg"=1e3, "cg"=1e5, "pg"=1e9)
     if (niter == "auto")
@@ -471,7 +502,7 @@ poismf__unsafe <- function(A, B, Xcsr, Xcsc, k, method="tncg",
           A, B, dimA, dimB, k,
           method_code, limit_step, l2_reg, l1_reg,
           weight_mult, initial_step,
-          niter, maxupd, nthreads)
+          niter, maxupd, handle_interrupt, nthreads)
     out <- list(
         A = A,
         B = B,
@@ -581,9 +612,11 @@ factors.single <- function(model, X, l2_reg = model$l2_reg, l1_reg = model$l1_re
 #' a `data.frame` or as a sparse or dense matrix (see documentation of \link{poismf}
 #' for details on the data type). While other functions only accept sparse matrices
 #' in COO (triplets) format, this function will also take CSR matrices from the
-#' `SparseM` package (recommended) and CSC matrices from the `Matrix` package
-#' (`Matrix::dgCMatrix`, but it's not recommended). Inputs will be converted to CSR
-#' regardless of their original format.
+#' `SparseM` and  `Matrix` packages (classes `dgRMatrix`/`RsparseMatrix` for `Matrix`).
+#' Inputs will be converted to CSR regardless of their original format.
+#' 
+#' Note that converting a matrix to `dgRMatrix` format might require using
+#' `as(m, "RsparseMatrix")` instead of using `dgRMatrix` directly.
 #' 
 #' If passing a `data.frame`, the first column should contain row indices or IDs,
 #' and these will be internally remapped - the mapping will be available as the row
@@ -631,10 +664,13 @@ factors <- function(model, X, add_names=TRUE) {
         if (is.null(dim(X))) {
             stop("Invalid 'X'.")
         }
-        if (ncol(X) > model$dimB) stop("'X' cannot contain new columns.")
+        if (ncol(X) != model$dimB)
+            stop("'X' should contain the same columns as passed to 'poismf'.")
         
         if ("matrix" %in% class(X)) {
-            Xcsr <- as(t(X), "dgCMatrix")
+            Xcsr <- as(X, "dgRMatrix")
+        } else if ("dgRMatrix" %in% class(X)) {
+            Xcsr <- X
         } else if ("dgTMatrix" %in% class(X)) {
             Xcsr <- as(Matrix::t(X), "dgCMatrix")
         } else if("dgCMatrix" %in% class(X)) {
@@ -657,7 +693,7 @@ factors <- function(model, X, add_names=TRUE) {
             stop("'X' must be a 'data.frame' with 3 columns, or a matrix (either full, or sparse triplets or CSR).")
         }
         
-        if ("matrix.csr" %in% class(Xcsr)) {
+        if (any(class(Xcsr) %in% c("dgRMatrix", "matrix.csr"))) {
             dimA <- nrow(Xcsr)
         } else {
             dimA <- ncol(Xcsr)
@@ -669,6 +705,10 @@ factors <- function(model, X, add_names=TRUE) {
         Xr_indptr  <- Xcsr@ia - 1L
         Xr_indices <- Xcsr@ja - 1L
         Xr_values  <- Xcsr@ra
+    } else if ("dgRMatrix" %in% class(Xcsr)) {
+        Xr_indptr  <- Xcsr@p
+        Xr_indices <- Xcsr@j
+        Xr_values  <- Xcsr@x
     } else {
         Xr_indptr  <- Xcsr@p
         Xr_indices <- Xcsr@i
@@ -689,6 +729,8 @@ factors <- function(model, X, add_names=TRUE) {
                   model$initial_step, model$niter, model$maxupd,
                   method_code, model$limit_step,
                   model$nthreads)
+    if (is.null(Anew))
+        stop("Memory error.")
     Anew <- t(matrix(Anew, nrow=model$k))
     if (add_names & ("levels_A" %in% names(model))) {
         row.names(Anew) <- levs
