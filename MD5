@@ -1,7 +1,7 @@
-d210129e91302a202931606b6f9528d7 *DESCRIPTION
-f3aa3bf46266e49a4527e09d3bf7f229 *LICENSE
-83b3514c074c4155aee9bb1b4f8fedfc *NAMESPACE
-fb80a19266839b035e515c5b767f08bb *R/poismf.R
+c0a6a6904688bd27cb121c921625343f *DESCRIPTION
+bb0566e915e1f94b9c617a3243439054 *LICENSE
+797ec0f23b99a5ee8fd69fd2a6482575 *NAMESPACE
+a71595d9ce507a768b65ff398e64fd96 *R/poismf.R
 c8e3dfbde5068cc15a771bf843b0f385 *configure
 a699ad3171045a0a80fd6c858c2befad *configure.ac
 ff4d15efa1f0ba1b745dca5aca070a0d *man/factors.Rd
@@ -9,8 +9,8 @@ ff4d15efa1f0ba1b745dca5aca070a0d *man/factors.Rd
 e4e2a9b2c7bd05a35af6c998a8b0336b *man/get.all.predictions.Rd
 03651ee0a3ea759982aa5b49345f7043 *man/get.factor.matrices.Rd
 02d10cf8a86f2ae020bfa0afd3b10d2b *man/get.model.mappings.Rd
-eb149e80a22068bdc990917926bed47e *man/poismf.Rd
-f3fd82a9500db746eb1ece588a511fd6 *man/poismf_unsafe.Rd
+054c877dda9222cc3332d7df1c91da22 *man/poismf.Rd
+90d8d142c5b9b620b3a457792e83c93a *man/poismf_unsafe.Rd
 a4228b621aaf112d65ad8feffcbf3e3c *man/poisson.llk.Rd
 b527014186fdf19e3f976b3fce79487f *man/predict.poismf.Rd
 e9f8391208af870e89e5aa63deabe533 *man/print.poismf.Rd
@@ -20,10 +20,10 @@ acfd802768672e713ea0ff86d14b134b *man/topN.Rd
 bb840b79b85e319523f0664f86163e41 *src/Makevars.in
 b999d58acc80ac7f6b4855ca3abcfdd5 *src/Makevars.win
 325c926563b168446030b22954a9b3f8 *src/nonnegcg.c
-8fe6c362d2ae23f0831752f300668a1e *src/poismf.c
-00ce8d7e3b3de026e6b80e85fac3d9aa *src/poismf.h
+ad55e72a43595830532e1de22f1c8aa3 *src/poismf.c
+b1d11ab2c2922533223651761289e7fe *src/poismf.h
 002008bc49e7c313b5f00203e7583cb1 *src/pred.c
-3d134579440081497a5c6554efc04cbf *src/rwrapper.c
+b9ec098589f7abcd7a855acf99a3cdf6 *src/rwrapper.c
 c0a08369d8902dc7a213650e0bd1a542 *src/tnc.c
 8da57b43bf6f35445ed535ad7ff0b342 *src/tnc.h
 bcf956609ca5fd5a69f1ee23d88f8cfa *src/topN.c
