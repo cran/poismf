@@ -32,6 +32,9 @@
 #' such failed optimizations.
 #' 
 #' For reproducible results, random number generation seeds can be controlled through `set.seed`.
+#' 
+#' Models or recommendation quality can be evaluated using the
+#' \href{https://cran.r-project.org/package=recometrics}{recometrics} package.
 #' @param X The counts matrix to factorize. Can be: \itemize{
 #' \item A `data.frame` with 3 columns, containing in this order:
 #' row index or user ID, column index or item ID, count value. The first two columns will
@@ -251,6 +254,14 @@ poismf <- function(X, k = 50, method = "tncg",
     niter        <- as.integer(niter)
     maxupd       <- as.integer(maxupd)
     nthreads     <- as.integer(nthreads)
+
+    if (nthreads > 1L && !.Call("R_has_openmp")) {
+        msg <- paste0("Attempting to use more than 1 thread, but ",
+                      "package was compiled without OpenMP support.")
+        if (tolower(Sys.info()[["sysname"]]) == "darwin")
+            msg <- paste0(msg, " See https://mac.r-project.org/openmp/")
+        warning(msg)
+    }
     
     method_code  <- switch(method,
                            "tncg" = 1L,
