@@ -42,11 +42,6 @@
    if wrapping it for a different language. */
 #ifdef _FOR_R
 
-#include <R_ext/Rdynload.h>
-#include <R.h>
-#include <Rinternals.h>
-#include <limits.h>
-#include <math.h>
 #include "poismf.h"
 
 /* FORTRAN-BLAS -> CBLAS */
@@ -316,7 +311,7 @@ static const R_CallMethodDef callMethods [] = {
     {NULL, NULL, 0}
 }; 
 
-void R_init_poismf(DllInfo *info)
+void attribute_visible R_init_poismf(DllInfo *info)
 {
     R_registerRoutines(info, NULL, callMethods, NULL, NULL);
     R_useDynamicSymbols(info, TRUE);

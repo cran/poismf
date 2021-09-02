@@ -43,7 +43,7 @@ extern "C" {
 
 /* Aliasing for compiler optimizations */
 #ifdef __cplusplus
-    #if defined(__GNUG__) || defined(__GNUC__) || defined(_MSC_VER) || defined(__clang__) || defined(__INTEL_COMPILER)
+    #if defined(__GNUG__) || defined(__GNUC__) || defined(_MSC_VER) || defined(__clang__) || defined(__INTEL_COMPILER) || defined(__IBMCPP__) || defined(__ibmxl__)
         #define restrict __restrict
     #else
         #define restrict 
@@ -65,6 +65,8 @@ extern "C" {
 #include <string.h>
 #include <stddef.h>
 #include <limits.h>
+#include <signal.h>
+typedef void (*sig_t_)(int);
 #ifdef _OPENMP
     #include <omp.h>
 #else
@@ -74,16 +76,17 @@ extern "C" {
     #define sparse_ix size_t
     #include <stdio.h>
 #else
+    #include <limits.h>
     #include <Rinternals.h>
     #include <R.h>
     #include <R_ext/Rdynload.h>
     #include <R_ext/Print.h>
+    #include <R_ext/Visibility.h>
     #define fprintf(f, ...) REprintf(__VA_ARGS__)
     #define sparse_ix int
     #undef USE_FLOAT
+    #include <Rinternals.h>
 #endif
-#include <signal.h>
-typedef void (*sig_t_)(int);
 
 #ifndef USE_FLOAT
     #ifndef real_t
