@@ -1,4 +1,4 @@
-AC_INIT([poismf], 0.3.1)
+AC_INIT([poismf], 0.4.0)
 
 AC_CHECK_LIB(atomic, __atomic_exchange, [HAS_ATOMIC=TRUE], [HAS_ATOMIC=FALSE])
 if test "$HAS_ATOMIC" = "TRUE"; then
@@ -10,5 +10,27 @@ else
 fi
 AC_SUBST(OMP_PLUS_ATOMIC_L)
 AC_SUBST(OMP_PLUS_ATOMIC)
+
+AC_LANG(C)
+OLD_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fno-math-errno"
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([[]])],
+    [FNE_FLAG="-fno-math-errno"],
+    [FNE_FLAG=""]
+)
+CFLAGS="$OLD_CFLAGS"
+AC_SUBST(FNE_FLAG)
+
+OLD_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -fno-trapping-math"
+AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([[]])],
+    [FNTP_FLAG="-fno-trapping-math"],
+    [FNTP_FLAG=""]
+)
+CFLAGS="$OLD_CFLAGS"
+AC_SUBST(FNTP_FLAG)
+
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT
