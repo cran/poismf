@@ -2,7 +2,7 @@ Package: poismf
 Type: Package
 Title: Factorization of Sparse Counts Matrices Through Poisson
         Likelihood
-Version: 0.4.0
+Version: 0.4.0-1
 Authors@R: c(
   person(given="David", family="Cortes", role=c("aut", "cre", "cph"),
          email="david.cortes.rivera@gmail.com"),
@@ -24,9 +24,9 @@ Imports: Matrix (>= 1.3), methods
 RoxygenNote: 7.1.2
 NeedsCompilation: yes
 Encoding: UTF-8
-Packaged: 2022-02-24 19:53:02 UTC; david
+Packaged: 2022-08-15 21:23:56 UTC; david
 Author: David Cortes [aut, cre, cph],
   Jean-Sebastien Roy [cph] (Copyright holder of included tnc library),
   Stephen Nash [cph] (Copyright holder of included tnc library)
 Repository: CRAN
-Date/Publication: 2022-02-25 08:00:06 UTC
+Date/Publication: 2022-08-15 21:40:06 UTC
