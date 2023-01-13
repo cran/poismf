@@ -1,9 +1,9 @@
-dc53e05100ffdf2306dd17532d1bcde9 *DESCRIPTION
+3c56c7f08fdd875b53d78280ce0020c1 *DESCRIPTION
 bf1ab3f98c675857ea89839a752f4cdc *LICENSE
 f6dd71fc68e3591db38ddaf10f29cdcb *NAMESPACE
 14e7b92dadc8fbd06a0855ba79810d5c *R/poismf.R
-19dbd5a8117cd9b9396945861f59cd79 *configure
-dab965c80b92633bbf99ea28a7ba5d6e *configure.ac
+f55992bbadc8c151ad100fcc09e2a673 *configure
+83c94af938081dc4ce88e1efa600e21f *configure.ac
 d41d8cd98f00b204e9800998ecf8427e *configure.win
 7e4ed1efeaae6fd1a8e44717015d6128 *inst/COPYRIGHTS
 cafb590e04284595fcf6871c2f16836d *man/factors.Rd
