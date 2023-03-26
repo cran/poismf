@@ -1,10 +1,7 @@
-3c56c7f08fdd875b53d78280ce0020c1 *DESCRIPTION
+959be555f117863f95b2f5bcc6cf50eb *DESCRIPTION
 bf1ab3f98c675857ea89839a752f4cdc *LICENSE
 f6dd71fc68e3591db38ddaf10f29cdcb *NAMESPACE
 14e7b92dadc8fbd06a0855ba79810d5c *R/poismf.R
-f55992bbadc8c151ad100fcc09e2a673 *configure
-83c94af938081dc4ce88e1efa600e21f *configure.ac
-d41d8cd98f00b204e9800998ecf8427e *configure.win
 7e4ed1efeaae6fd1a8e44717015d6128 *inst/COPYRIGHTS
 cafb590e04284595fcf6871c2f16836d *man/factors.Rd
 1b1a7029b5ff948db8a8933d4266cec3 *man/factors.single.Rd
@@ -17,8 +14,7 @@ e9f8391208af870e89e5aa63deabe533 *man/print.poismf.Rd
 dc409f5a29186f5ba95a34e4dd3b04bc *man/summary.poismf.Rd
 8af45245c836ef69ae81010bc4349117 *man/topN.Rd
 cf40cade8fa5b9508bc1ee3072843d23 *man/topN.new.Rd
-14ac28aec5e5089ac4bce9c7a022602e *src/Makevars.in
-291cd3274ef7c9e525de786ff107ab51 *src/Makevars.win
+7d048a5efd49f95a5bb42d4c60a32e40 *src/Makevars
 61ce320d4049a0c213cbd73ecb9003ee *src/nonnegcg.c
 bbb4bf8f260ccd02caf27ee9af903fbf *src/poismf-win.def
 ec136fa42436869a3994087a58633822 *src/poismf.c
